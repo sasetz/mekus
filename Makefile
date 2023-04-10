@@ -14,18 +14,18 @@ HFLAGS=-MP -MD
 CFLAGS=-g -Wall -Wextra $(foreach DIR,$(INCLUDES),-I$(DIR)) $(OPTS) $(HFLAGS)
 
 # generate a list of all .c files
-SOURCES=$(foreach FILE,$(SRC),$(wildcard $(DIR)/*.c))
+SOURCES=$(foreach D,$(SRC),$(wildcard $(D)/*.c))
 # .o
-OBJECTS=$(patsubst %.c,$(BUILD_DIR)/%.o,$(CFILES))
+OBJECTS=$(patsubst %.c,$(BUILD_DIR)/%.o,$(notdir $(SOURCES)))
 # .d (gcc generates them)
-DEPFILES=$(patsubst %.c,%.d,$(CFILES))
+DEPFILES=$(patsubst %.c,%.d,$(notdir $(SOURCES)))
 
 all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) -o $@ $^
 
-%.o:$(BUILD_DIR)/%.c
+$(BUILD_DIR)/%.o:$(SRC)/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
