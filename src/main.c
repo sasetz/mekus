@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "main.h"
+#include "script.h"
 #include "server.h"
 #include "client.h"
 #include "settings.h"
@@ -81,12 +82,15 @@ int main(i32 argc, string argv[]) {
 
     switch(connections.mode) {
         case SCRIPT: {
+            script(connections);
             break;
         }
         case SERVER: {
+            server(connections);
             break;
         }
         case CLIENT: {
+            client(connections);
             break;
         }
     }
