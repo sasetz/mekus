@@ -11,7 +11,7 @@ OPTS=-O0
 HFLAGS=-MP -MD
 
 # compose all flags
-CFLAGS=-g -Wall -Wextra $(foreach DIR,$(INCLUDES),-I$(DIR)) $(OPTS) $(HFLAGS)
+CFLAGS=-g -Wall $(foreach DIR,$(INCLUDES),-I$(DIR)) $(OPTS) $(HFLAGS)
 
 # generate a list of all .c files
 SOURCES=$(foreach D,$(SRC),$(wildcard $(D)/*.c))
