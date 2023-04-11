@@ -3,8 +3,25 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/un.h>
+#include <pthread.h>
 
 #include "client.h"
+
+i32 inputThread(descriptor* socket) {
+    return 0;
+}
+
+i32 outputThread(descriptor* socket) {
+    printf("Starting the shell...\n");
+    char buffer[512];
+    zero(buffer, 512);
+    i32 charactersRead = 0;
+    while((charactersRead = read(*socket, buffer, 512)) > 0) {
+        write(1, buffer, charactersRead);
+    }
+    printf("The shell has exited...\n");
+    return 0;
+}
 
 void client(ConnectionParams connectionParams) {
     // 1. connect to socket
@@ -27,6 +44,19 @@ void client(ConnectionParams connectionParams) {
         connectionParams.parameters.client.socketPath,
         108
     );
-    // TODO: connect to the server's socket
-    // TODO: spawn a thread for asyncronous io
+
+    i32 connectResult = connect(
+        socketDescriptor,
+        (struct sockaddr*)&address,
+        sizeof(address.sun_path)
+    );
+    if(connectResult == -1) {
+        perror("connect");
+        exit(2);
+    }
+    printf("Connection successful!\n");
+
+    pthread_t threadId;
+    pthread_create(&threadId, NULL, &outputThread, (void*)&socketDescriptor);
+    pthread_join(threadId, NULL);
 }
