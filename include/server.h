@@ -11,7 +11,7 @@ typedef struct {
 } ClientData;
 
 void server(ConnectionParams connectionParams);
-i32 clientService(ClientData* data);
+void* serveThread(void* dataPointer);
 
 #endif /* end of include guard: SERVER_H */
 

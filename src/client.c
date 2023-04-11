@@ -1,25 +1,37 @@
 #include <sys/socket.h>
+#include <sys/syscall.h>
+#include <sys/un.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/un.h>
 #include <pthread.h>
 
 #include "client.h"
 
-i32 inputThread(descriptor* socket) {
-    return 0;
-}
-
-i32 outputThread(descriptor* socket) {
-    printf("Starting the shell...\n");
+void* inputThread(void* socketPointer) {
+    descriptor socket = *(descriptor*)socketPointer;
     char buffer[512];
     zero(buffer, 512);
     i32 charactersRead = 0;
-    while((charactersRead = read(*socket, buffer, 512)) > 0) {
+    bool writeSuccessful = TRUE;
+    while(writeSuccessful && (charactersRead = read(0, buffer, 512)) > 0) {
+        writeSuccessful = write(socket, buffer, charactersRead) > 0;
+    }
+    printf("The server has ended the connection\n");
+    syscall(SYS_exit_group, 0); // terminate the whole program
+    return 0;
+}
+
+void* outputThread(void* socketPointer) {
+    descriptor socket = *(descriptor*)socketPointer;
+    char buffer[512];
+    zero(buffer, 512);
+    i32 charactersRead = 0;
+    while((charactersRead = read(socket, buffer, 512)) > 0) {
         write(1, buffer, charactersRead);
     }
-    printf("The shell has exited...\n");
+    printf("The server has ended the connection\n");
+    syscall(SYS_exit_group, 0); // terminate the whole program
     return 0;
 }
 
@@ -31,7 +43,7 @@ void client(ConnectionParams connectionParams) {
     descriptor socketDescriptor = socket(AF_LOCAL, SOCK_STREAM, 0);
     if(socketDescriptor == -1) {
         perror("socket");
-        exit(2);
+        pthread_exit((void*)2);
     }
 
     struct sockaddr_un address;
@@ -52,11 +64,22 @@ void client(ConnectionParams connectionParams) {
     );
     if(connectResult == -1) {
         perror("connect");
-        exit(2);
+        pthread_exit((void*)2);
     }
     printf("Connection successful!\n");
 
-    pthread_t threadId;
-    pthread_create(&threadId, NULL, &outputThread, (void*)&socketDescriptor);
-    pthread_join(threadId, NULL);
+    pthread_t controlThreadId, pawnThreadId;
+    pthread_create(
+        &controlThreadId,
+        NULL,
+        &outputThread,
+        (void*)&socketDescriptor
+    );
+    pthread_create(
+        &pawnThreadId,
+        NULL,
+        &inputThread,
+        (void*)&socketDescriptor
+    );
+    pthread_exit(0); // finish with the main thread
 }

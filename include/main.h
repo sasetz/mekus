@@ -28,8 +28,8 @@ static struct argp_option options[] = {
     {"prompt", 'p', "PROMPT_PATH", OPTION_ARG_OPTIONAL,
         "Specify path to custom prompt script"},
 
-    {"listen", 'l', 0, 0, "Start a client"},
-    {"serve", 's', 0, 0, "Start a server"},
+    {"listen", 'l', 0, 0, "Start a server"},
+    {"send", 's', 0, 0, "Start a client"},
     { 0 },
 };
 

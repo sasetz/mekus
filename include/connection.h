@@ -21,10 +21,9 @@ enum Mode {
 typedef struct {
     union {
         struct {
-            string socketPath; // path to the connection socket
+            descriptor socket; // descriptor to bound socket
             string configPath;
             string promptPath;
-            i32 queueLength; // 0 if the program is client
         } server;
         struct {
             string socketPath; // path to the connection socket

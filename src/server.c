@@ -1,71 +1,80 @@
 #include <sys/socket.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <sys/syscall.h>
 #include <sys/un.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <poll.h>
 #include <pthread.h>
 
 #include "server.h"
+#include "settings.h"
 
-i32 clientService(ClientData* data) {
-    // all terminal data actually flows to the client
-    dup2(data->socket, 1);
-    dup2(data->socket, 2);
-    dup2(data->socket, 0);
+i32 printMessageN(descriptor socket, string message, i32 length) {
+    return write(socket, message, length);
+}
 
-    // test message
-    printf("Welcome to Mekus shell!\n");
-    close(data->socket); // end the connection
+i32 printMessage(descriptor socket, constString message) {
+    return write(socket, message, strlen(message));
+}
+
+i32 scanMessage(descriptor socket, string buffer, i32 length) {
+    return read(socket, buffer, length);
+}
+
+void* serveThread(void* dataPointer) {
+    ClientData data = *(ClientData*)dataPointer;
+
+    // print welcome message
+    printMessage(data.socket, "Welcome to Mekus shell!\n");
+    printMessage(data.socket, "@# ");
+
+    char buffer[16];
+    i32 readBytes = 0;
+    while(strcmp(buffer, "exit") != 0){
+        if((readBytes = scanMessage(data.socket, buffer, 16)) < 1) {
+            break;
+        }
+        printMessageN(data.socket, buffer, readBytes); // echo message
+    }
+    printMessage(data.socket, "Goodbye!\n");
+    close(data.socket); // end the connection
+    pthread_exit(0); // successful exit
     return 0;
 }
 
 void server(ConnectionParams connectionParams) {
-    // 1. create socket
-    // 2. wait for a connection
-    // 3. spawn a new thread that handles the client
-    // 4. go back to step 2
+    // close the communication to terminal, it can interfere with the client
+    close(0); // close stdin
+    close(1); // close stdout
+    close(2); // close stderr
 
-    close(1); // we don't need the output for server
-    close(2);
+    descriptor socketDescriptor = connectionParams.parameters.server.socket;
 
-    descriptor socketDescriptor = socket(AF_LOCAL, SOCK_STREAM, 0);
-    if(socketDescriptor == -1) {
-        perror("socket");
-        exit(2);
-    }
-
-    struct sockaddr_un address;
-
-    zeroStruct(address);
-    address.sun_family = AF_LOCAL;
-    // copy the socket address
-    strncpy(
-        address.sun_path,
-        connectionParams.parameters.server.socketPath,
-        108
-    );
-
-    // get rid of possibly existing socket
-    unlink(connectionParams.parameters.server.socketPath);
-
-    if(bind(
+    // fill in poll struct
+    struct pollfd pollSettings = {
         socketDescriptor,
-        (struct sockaddr *) &address,
-        sizeof(address.sun_path)
-    ) == -1) {
-        perror("bind");
-        exit(2);
+        POLLIN,
+        0
+    };
+
+    descriptor clientSocket;
+    pthread_t threadId;
+    while(poll(&pollSettings, 1, 1000 * CONNECTION_TIMEOUT_S) != 0) {
+        // accept a new connection
+        clientSocket = accept(socketDescriptor, NULL, NULL);
+
+        // create the struct on the heap, so that each thread has its own
+        // data struct, and not the same one
+        ClientData* dataPointer = (ClientData*) malloc(sizeof(ClientData));
+        dataPointer->socket = clientSocket;
+        dataPointer->params = connectionParams;
+
+        // serve the client, spawning a new thread
+        pthread_create(&threadId, NULL, &serveThread, (void*)dataPointer);
     }
 
-    listen(socketDescriptor, connectionParams.parameters.server.queueLength);
+    // no more users need serving
 
-    descriptor clientSocket = accept(socketDescriptor, NULL, NULL);
-    pthread_t threadId;
-    ClientData data = {
-        clientSocket,
-        connectionParams
-    };
-    pthread_create(&threadId, NULL, &clientService, (void*)&data);
-    pthread_join(threadId, NULL);
-    // TODO: add connection handling using threads
+    pthread_exit(0); // terminate the connection thread
 }

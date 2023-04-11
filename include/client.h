@@ -6,8 +6,8 @@
 
 void client(ConnectionParams connectionParams);
 
-i32 inputThread(descriptor* socket);
-i32 outputThread(descriptor* socket);
+void* inputThread(void* socketPointer);
+void* outputThread(void* socketPointer);
 
 #endif /* end of include guard: CLIENT_H */
 
