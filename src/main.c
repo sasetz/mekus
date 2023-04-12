@@ -9,6 +9,7 @@
 #include "client.h"
 #include "settings.h"
 
+// FIX: replace all magic 0 and 2 from exits to more readable constants
 StartupParams parseArguments(i32 argc, string argv[]) {
     struct arguments arguments;
 
