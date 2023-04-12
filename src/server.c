@@ -31,7 +31,7 @@ void* serveThread(void* dataPointer) {
 
     char buffer[16];
     i32 readBytes = 0;
-    while(strcmp(buffer, "exit") != 0){
+    while(strcmp(buffer, "exit\n") != 0){
         if((readBytes = scanMessage(data.socket, buffer, 16)) < 1) {
             break;
         }
