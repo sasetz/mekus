@@ -15,6 +15,7 @@ typedef struct {
 typedef struct {
     string data; // always contains a copy, not a reference
     size_t length;
+    bool isControl; // is the token controlling one or not
 } Token;
 
 typedef enum {
@@ -35,12 +36,8 @@ Token* _nextToken(Tokenizer* tokenizer);
 // true if the tokenizer has more stuff to process
 bool _hasNextToken(Tokenizer tokenizer);
 
-Token* _newToken(string tokenStart, string tokenEnd);
+Token* _newToken(string tokenStart, string tokenEnd, bool isControl);
 void _deleteToken(Token* token);
-
-// transforms the input into an array of tokens
-// returns NULL on an error
-Token* tokenize(string data);
 
 // return input character's type
 CharacterType characterData(char character);

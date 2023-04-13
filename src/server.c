@@ -31,7 +31,7 @@ void* serveThread(void* dataPointer) {
 
     char buffer[16];
     i32 readBytes = 0;
-    while(strcmp(buffer, "exit\n") != 0){
+    while(strcmp(buffer, "exit\n") != 0) {
         if((readBytes = scanMessage(data.socket, buffer, 16)) < 1) {
             break;
         }
@@ -45,6 +45,7 @@ void* serveThread(void* dataPointer) {
 
 void server(ConnectionParams connectionParams) {
     // close the communication to terminal, it can interfere with the client
+    // TODO: add logging to a file
     close(0); // close stdin
     close(1); // close stdout
     close(2); // close stderr

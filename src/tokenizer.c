@@ -28,7 +28,6 @@ CharacterType characterData(char character) {
         case '>':
         case '&':
         case ';':
-        case '`':
         case '|': {
             output = CONTROL;
             break;
@@ -58,7 +57,8 @@ void _deleteTokenizer(Tokenizer tokenizer) {
 // tokenEnd = end address of the string, character under this
 //      address will NOT be included to the string
 //
-Token* _newToken(string tokenStart, string tokenEnd) {
+// isControl = is the token control, or just text one
+Token* _newToken(string tokenStart, string tokenEnd, bool isControl) {
     size_t length = tokenEnd - tokenStart;
     string data = (string) malloc(sizeof(char) * (length + 1));
     zero(data, length + 1);
@@ -68,6 +68,7 @@ Token* _newToken(string tokenStart, string tokenEnd) {
     Token* output = (Token*) malloc(sizeof(Token));
     output->data = data;
     output->length = length;
+    output->isControl = isControl;
 
     return output;
 }
@@ -78,6 +79,7 @@ void _deleteToken(Token* token) {
 }
 
 // startPos = position of the first quote
+// TODO: add escaping of the quote
 Token* getTokenBetweenQuotes(Tokenizer* tokenizer) {
     size_t startQuotePos = tokenizer->position;
 
@@ -91,7 +93,8 @@ Token* getTokenBetweenQuotes(Tokenizer* tokenizer) {
 
     return _newToken(
         &tokenizer->data[startQuotePos + 1],
-        &tokenizer->data[endQuotePos]
+        &tokenizer->data[endQuotePos],
+        FALSE
     );
 }
 
@@ -111,10 +114,10 @@ Token* _nextToken(Tokenizer* tokenizer) {
                 if(tokenStart == tokenizer->position) {
                     tokenizer->position++;
                     // get the address of the character
-                    return _newToken(startAddress, startAddress + 1);
+                    return _newToken(startAddress, startAddress + 1, TRUE);
                 } else {
                     // a token has been started, finish it
-                    return _newToken(startAddress, currentAddress);
+                    return _newToken(startAddress, currentAddress, FALSE);
                 }
                 break;
             }
@@ -135,14 +138,14 @@ Token* _nextToken(Tokenizer* tokenizer) {
                 // if we had some token before, separate it and leave
                 // the quote for later
                 else
-                    return _newToken(startAddress, currentAddress + 1);
+                    return _newToken(startAddress, currentAddress + 1, FALSE);
             }
             case SINGLE_DELIMITER: {
                 if(tokenStart < tokenizer->position) {
                     tokenizer->position++;
                     // no +1 at the end address, since we don't need to
                     // capture the delimiter in the token
-                    return _newToken(startAddress, currentAddress);
+                    return _newToken(startAddress, currentAddress, FALSE);
                 }
                 tokenizer->position++;
                 tokenStart = tokenizer->position;
@@ -155,7 +158,8 @@ Token* _nextToken(Tokenizer* tokenizer) {
         // unfinished token
         return _newToken(
             &tokenizer->data[tokenStart],
-            &tokenizer->data[tokenizer->position]
+            &tokenizer->data[tokenizer->position],
+            FALSE
         );
     }
     return NULL; // no tokens left to process
@@ -163,10 +167,5 @@ Token* _nextToken(Tokenizer* tokenizer) {
 
 bool _hasNextToken(Tokenizer tokenizer) {
     return tokenizer.position < tokenizer.length;
-}
-
-Token* tokenizer(string data) {
-    // TODO: implement this function
-    return 0;
 }
 

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <sys/types.h>
 
 // style guidelines
 //
@@ -37,6 +38,8 @@ typedef i8 bool;
 #define FALSE 0
 
 typedef int descriptor;
+typedef pid_t pid;
+typedef int exitCode;
 
 // functions and stuff
 #define zero(array,length) memset(array,0,length)

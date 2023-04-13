@@ -35,7 +35,7 @@ StartupParams parseArguments(i32 argc, string argv[]) {
 // creates and binds a socket to a path in the filesystem
 descriptor createSocket(char socketPath[108], i32 queueLength) {
     // create a new socket
-    descriptor socketDescriptor = socket(AF_LOCAL, SOCK_STREAM, 0);
+    descriptor socketDescriptor = socket(AF_LOCAL, SOCK_STREAM, SOCK_CLOEXEC);
     if(socketDescriptor == -1) {
         perror("socket");
         exit(2);
