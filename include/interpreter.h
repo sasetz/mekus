@@ -10,7 +10,7 @@ typedef struct {
     string* args;
 
     // redirections
-    string inputFilePath; // 0 in the first byte if there is no need to open it
+    string inputFilePath; // NULL if there is no need to open it
     string outputFilePath; // same
     string errorFilePath; // same
     descriptor output; // where to route stdout (1 is the default)
@@ -23,15 +23,13 @@ typedef struct {
     i32 length; // length of the array
 } Pipeline;
 
-// takes a string as input, tokenizes it and runs some commands
-// data = string to interpret
-// input = input descriptor, reads from there
-// output = output descriptor, writes data there
-void interpretLine(string data, descriptor input, descriptor output);
+// interpret a string of text
+// io is conducted using the socket
+void interpret(string data, descriptor socket);
 
 // runs a single command (the one that is divided by ; or \n), regardless of
 // whether it is external or built-in
-void runCommand(string* args, descriptor input, descriptor output);
+void runCommand(TokenList* args, descriptor socket);
 
 void runPipeline(Pipeline pipeline, descriptor input, descriptor output);
 

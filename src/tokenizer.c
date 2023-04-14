@@ -5,7 +5,7 @@
 
 Tokenizer _newTokenizer(string data) {
     size_t length = strlen(data); // this length does not count \0
-    string outputData = (string) malloc(sizeof(char) * (length + 1) );
+    string outputData = strndup(data, length);
     return (Tokenizer){
         outputData,
         length,
@@ -28,6 +28,7 @@ CharacterType characterData(char character) {
         case '>':
         case '&':
         case ';':
+        case '\n':
         case '|': {
             output = CONTROL;
             break;
@@ -36,7 +37,6 @@ CharacterType characterData(char character) {
             output = PAIR_DELIMITER;
             break;
         }
-        case '\n':
         case ' ': {
             output = SINGLE_DELIMITER;
             break;
@@ -67,13 +67,12 @@ Token* _newToken(string tokenStart, string tokenEnd, bool isControl) {
 
     Token* output = (Token*) malloc(sizeof(Token));
     output->data = data;
-    output->length = length;
     output->isControl = isControl;
 
     return output;
 }
 
-void _deleteToken(Token* token) {
+void _destroyToken(Token* token) {
     free(token->data);
     free(token);
 }
@@ -98,7 +97,7 @@ Token* getTokenBetweenQuotes(Tokenizer* tokenizer) {
     );
 }
 
-Token* _nextToken(Tokenizer* tokenizer) {
+Token* _produceNextToken(Tokenizer* tokenizer) {
     size_t tokenStart = tokenizer->position;
 
     while(tokenizer->position < tokenizer->length) {
@@ -167,5 +166,129 @@ Token* _nextToken(Tokenizer* tokenizer) {
 
 bool _hasNextToken(Tokenizer tokenizer) {
     return tokenizer.position < tokenizer.length;
+}
+
+TokenNode* _newTokenNode(Token token) {
+    TokenNode* output = (TokenNode*) malloc(sizeof(TokenNode));
+
+    output->previous = NULL;
+    output->next = NULL;
+
+    Token* tokenCopy = (Token*) malloc(sizeof(Token));
+    size_t length = strlen(token.data);
+
+    tokenCopy->data = (string) malloc(sizeof(char) * (length + 1));
+    tokenCopy->data[length] = 0;
+    strncpy(tokenCopy->data, token.data, length);
+    tokenCopy->isControl = token.isControl;
+
+    output->token = tokenCopy;
+    return output;
+}
+
+void _destroyTokenNode(TokenNode* tokenNode) {
+    _destroyToken(tokenNode->token);
+    free(tokenNode);
+}
+
+TokenList* _newTokenList() {
+    TokenList* output = (TokenList*) malloc(sizeof(TokenList));
+
+    output->length = 0;
+    output->start = NULL;
+    output->end = NULL;
+    output->cursor = NULL;
+
+    return output;
+}
+
+void _destroyTokenList(TokenList* tokenList) {
+    // traverse
+    TokenNode* current = tokenList->start;
+    TokenNode* nextOne = current->next;
+    while(current != NULL) {
+        _destroyTokenNode(current);
+        current = nextOne;
+
+        if(current == NULL)
+            break;
+        nextOne = current->next;
+    }
+
+    free(tokenList);
+}
+
+void _insertToken(TokenList* tokenList, Token token) {
+    TokenNode* newNode = _newTokenNode(token);
+
+    if(tokenList->length == 0) {
+        tokenList->length = 1;
+        tokenList->start = newNode;
+        tokenList->end = newNode;
+        tokenList->cursor = newNode;
+        return;
+    }
+
+    newNode->previous = tokenList->end;
+    tokenList->end = newNode;
+    tokenList->length++;
+}
+
+Token* _peekCurrentToken(TokenList* tokenList) {
+    if(tokenList->cursor == NULL)
+        return NULL;
+
+    return tokenList->cursor->token;
+}
+
+Token* _peekPreviousToken(TokenList* tokenList) {
+    if(tokenList->cursor == NULL)
+        return NULL;
+    if(tokenList->cursor->previous == NULL)
+        return NULL;
+
+    return tokenList->cursor->previous->token;
+}
+
+Token* _peekNextToken(TokenList* tokenList) {
+    if(tokenList->cursor == NULL)
+        return NULL;
+    if(tokenList->cursor->next == NULL)
+        return NULL;
+
+    return tokenList->cursor->next->token;
+}
+
+void _stepForward(TokenList* tokenList) {
+    tokenList->cursor = tokenList->cursor->next;
+}
+
+void _resetCursor(TokenList* tokenList) {
+    tokenList->cursor = tokenList->start;
+}
+
+string* _toStringArray(TokenList* tokenList) {
+    string* args = (string*) malloc(sizeof(tokenList->length + 1));
+    args[tokenList->length] = 0; // null-terminate the array
+
+    // traverse
+    TokenNode* current = tokenList->start;
+    TokenNode* nextOne = current->next;
+    i32 i = 0;
+    while(current != NULL) {
+        i32 length = strlen(current->token->data);
+        args[i] = (string) malloc(sizeof(char) * (length + 1));
+        args[i][length] = '\0'; // null-terminate the copied string
+        strncpy(args[i], current->token->data, length);
+
+        current = nextOne;
+
+        if(current == NULL)
+            break;
+        nextOne = current->next;
+        i++;
+    }
+
+    return args;
 }
 

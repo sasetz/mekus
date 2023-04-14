@@ -14,9 +14,23 @@ typedef struct {
 // shell, without delimiters, spaces, quotes, etc.
 typedef struct {
     string data; // always contains a copy, not a reference
-    size_t length;
     bool isControl; // is the token controlling one or not
 } Token;
+
+// node of token linked list
+typedef struct _tokennode {
+    struct _tokennode* previous;
+    struct _tokennode* next;
+    Token* token;
+} TokenNode;
+
+// linked list of tokens
+typedef struct {
+    TokenNode* start;
+    TokenNode* end;
+    TokenNode* cursor;
+    i32 length;
+} TokenList;
 
 typedef enum {
     REGULAR,
@@ -27,20 +41,45 @@ typedef enum {
     SINGLE_DELIMITER,
 } CharacterType;
 
+// return input character's type
+CharacterType characterData(char character);
+
+// ------------ token ------------
+//
+Token* _newToken(string tokenStart, string tokenEnd, bool isControl);
+
+void _destroyToken(Token* token);
+
+// ------------ tokenizer ------------
+//
 Tokenizer _newTokenizer(string data);
 void _deleteTokenizer(Tokenizer tokenizer);
 
-// produces next token
-Token* _nextToken(Tokenizer* tokenizer);
+Token* _produceNextToken(Tokenizer* tokenizer);
 
 // true if the tokenizer has more stuff to process
 bool _hasNextToken(Tokenizer tokenizer);
 
-Token* _newToken(string tokenStart, string tokenEnd, bool isControl);
-void _deleteToken(Token* token);
+// ------------ token node ------------
+//
+TokenNode* _newTokenNode(Token token);
+void _destroyTokenNode(TokenNode* tokenNode);
 
-// return input character's type
-CharacterType characterData(char character);
+// ------------ token linked list ------------
+//
+TokenList* _newTokenList(); // empty token list
+void _destroyTokenList(TokenList* tokenList);
+
+// frees the token later, no need to do it yourself
+void _insertToken(TokenList* tokenList, Token token);
+
+// get next token under the cursor, NULL when no next tokens left
+Token* _peekPreviousToken(TokenList* tokenList);
+Token* _peekCurrentToken(TokenList* tokenList);
+Token* _peekNextToken(TokenList* tokenList);
+void _stepForward(TokenList* tokenList);
+void _resetCursor(TokenList* tokenList);
+string* _toStringArray(TokenList* tokenList);
 
 #endif /* end of include guard: TOKENIZER_H */
 
