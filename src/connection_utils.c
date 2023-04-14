@@ -20,6 +20,6 @@ void terminateClient() {
     descriptor socket = _getSocket();
     close(socket);
     _deleteSocket();
-    pthread_exit(0);
+    pthread_exit(EXIT_SUCCESS);
 }
 

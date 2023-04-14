@@ -3,9 +3,9 @@
 
 #include "socket_table.h"
 
-// TODO: double-check whether the mutex is locked/unlocked properly
 static SocketTable* socketTable;
 static pthread_mutex_t mutex;
+static bool isInitialized = FALSE;
 
 static void _initSocketTableParams(descriptor socket) {
     socketTable->length = 1;
@@ -71,6 +71,9 @@ static i32 _getThreadIndex() {
 }
 
 descriptor _getSocket() {
+    if(!isInitialized || socketTable == NULL) {
+        return -1;
+    }
     pthread_mutex_lock(&mutex);
     descriptor output = socketTable->sockets[_getThreadIndex()];
     pthread_mutex_unlock(&mutex);
@@ -78,6 +81,8 @@ descriptor _getSocket() {
 }
 
 void _deleteSocket() {
+    if(!isInitialized || socketTable == NULL)
+        return;
     pthread_mutex_lock(&mutex);
     if(socketTable->length == 1) {
         socketTable->length = 0;
@@ -118,7 +123,7 @@ void _deleteSocket() {
 }
 
 void _destroySocketTable() {
-    if(socketTable == NULL)
+    if(!isInitialized || socketTable == NULL)
         return;
     pthread_mutex_lock(&mutex);
     for(i32 i = 0; i < socketTable->length; i++) {

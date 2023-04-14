@@ -8,8 +8,8 @@
 #include "interpreter.h"
 #include "builtins.h"
 
-void interpret(string line, descriptor socket) {
-    Tokenizer tokenizer = _newTokenizer(line);
+void interpret(string data, descriptor in, descriptor out, descriptor err) {
+    Tokenizer tokenizer = _newTokenizer(data);
     TokenList* tokens = _newTokenList();
     while(_hasNextToken(tokenizer)) {
         Token* token = _produceNextToken(&tokenizer);
@@ -18,7 +18,7 @@ void interpret(string line, descriptor socket) {
             (token->data[0] == ';' || token->data[0] == '\n')
         ) {
             // push current args list to program
-            runCommand(tokens, socket);
+            runCommand(tokens, in, out, err);
             _destroyTokenList(tokens);
             tokens = _newTokenList();
         } else {
@@ -28,7 +28,7 @@ void interpret(string line, descriptor socket) {
     }
 
     if(tokens->length > 0) {
-        runCommand(tokens, socket);
+        runCommand(tokens, in, out, err);
     }
 
     _destroyTokenList(tokens);
@@ -110,7 +110,12 @@ static void _destroyProgramOption(ProgramOptions object) {
     free(object.errorFilePath);
 }
 
-void runCommand(TokenList* args, descriptor socket) {
+void runCommand(
+    TokenList* args,
+    descriptor in,
+    descriptor out,
+    descriptor err
+) {
     _resetCursor(args);
     TokenList* list = _newTokenList();
     Token* currentToken = _peekCurrentToken(args);
@@ -139,7 +144,7 @@ void runCommand(TokenList* args, descriptor socket) {
         array,
         length
     };
-    runPipeline(pipeline, socket, socket);
+    runPipeline(pipeline, in, out, err);
 
     // clear up
     for(i32 i = 0; i < length; i++) {
@@ -149,16 +154,21 @@ void runCommand(TokenList* args, descriptor socket) {
     _destroyTokenList(list);
 }
 
-void runPipeline(Pipeline pipeline, descriptor input, descriptor output) {
+void runPipeline(
+    Pipeline pipeline,
+    descriptor input,
+    descriptor output,
+    descriptor error
+) {
     if(pipeline.length == 0)
         return;
     if(pipeline.length == 1) {
         // run the single program
-        pid pid = runProgram(
-            pipeline.options[0].args,
+        pid pid = redirectAndRun(
+            pipeline.options[0],
             input,
             output,
-            output
+            error
         );
         i32 status;
         waitpid(pid, &status, 0); // wait until the pipe stops
@@ -177,7 +187,7 @@ void runPipeline(Pipeline pipeline, descriptor input, descriptor output) {
             pipeline.options[i],
             nextInput,
             nextPipe[1],
-            output
+            error
         );
 
         if(i > 0)
@@ -190,7 +200,7 @@ void runPipeline(Pipeline pipeline, descriptor input, descriptor output) {
         pipeline.options[pipeline.length - 1],
         nextInput,
         output,
-        output
+        error
     );
     close(nextInput); // close read end of the pipe
 
@@ -292,7 +302,7 @@ pid runProgram(
         close(originalErr);
 
         execvp(args[0], args); // exec with args, respects PATH
-        pthread_exit((void*)2); // kill this process
+        pthread_exit((void*)EXIT_FAILURE); // kill this process
         return -1; // just to be sure
     }
     // the parent

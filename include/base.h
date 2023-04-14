@@ -41,6 +41,9 @@ typedef int descriptor;
 typedef pid_t pid;
 typedef int exitCode;
 
+#define EXIT_SUCCESS 0
+#define EXIT_ERROR 2
+
 // functions and stuff
 #define zero(array,length) memset(array,0,length)
 #define zeroStruct(STRUCT) memset(&STRUCT,0,sizeof(STRUCT))

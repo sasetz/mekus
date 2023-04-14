@@ -18,8 +18,8 @@ void* inputThread(void* socketPointer) {
         writeSuccessful = write(socket, buffer, charactersRead) > 0;
     }
     printf("The server has ended the connection\n");
-    syscall(SYS_exit_group, 0); // terminate the whole program
-    return 0;
+    syscall(SYS_exit_group, EXIT_SUCCESS); // terminate the whole program
+    return EXIT_SUCCESS;
 }
 
 void* outputThread(void* socketPointer) {
@@ -31,8 +31,8 @@ void* outputThread(void* socketPointer) {
         write(1, buffer, charactersRead);
     }
     printf("The server has ended the connection\n");
-    syscall(SYS_exit_group, 0); // terminate the whole program
-    return 0;
+    syscall(SYS_exit_group, EXIT_SUCCESS); // terminate the whole program
+    return EXIT_SUCCESS;
 }
 
 void client(ConnectionParams connectionParams) {
@@ -43,7 +43,7 @@ void client(ConnectionParams connectionParams) {
     descriptor socketDescriptor = socket(AF_LOCAL, SOCK_STREAM, 0);
     if(socketDescriptor == -1) {
         perror("socket");
-        pthread_exit((void*)2);
+        pthread_exit((void*)EXIT_FAILURE);
     }
 
     struct sockaddr_un address;
@@ -64,7 +64,7 @@ void client(ConnectionParams connectionParams) {
     );
     if(connectResult == -1) {
         perror("connect");
-        pthread_exit((void*)2);
+        pthread_exit((void*)EXIT_FAILURE);
     }
     printf("Connection successful!\n");
 
@@ -81,5 +81,5 @@ void client(ConnectionParams connectionParams) {
         &inputThread,
         (void*)&socketDescriptor
     );
-    pthread_exit(0); // finish with the main thread
+    pthread_exit(EXIT_SUCCESS); // finish with the main thread
 }

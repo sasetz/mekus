@@ -4,7 +4,7 @@
 #include "base.h"
 #include "connection.h"
 
-void script(ConnectionParams connectionParams);
+void script(string scriptPath, descriptor in, descriptor out, descriptor err);
 
 #endif /* end of include guard: SCRIPT_H */
 

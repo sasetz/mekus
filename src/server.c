@@ -9,17 +9,20 @@
 
 #include "server.h"
 #include "settings.h"
+#include "script.h"
+#include "interpreter.h"
 
 i32 printMessageN(descriptor socket, string message, i32 length) {
     return write(socket, message, length);
 }
 
-i32 printMessage(descriptor socket, constString message) {
+i32 printMessage(descriptor socket, string message) {
     return write(socket, message, strlen(message));
 }
 
-i32 scanMessage(descriptor socket, string buffer, i32 length) {
-    return read(socket, buffer, length);
+void scanMessage(descriptor socket, string buffer, i32 length) {
+    i32 readBytes = read(socket, buffer, length - 1);
+    buffer[readBytes] = 0; // null-terminate the string
 }
 
 void* serveThread(void* dataPointer) {
@@ -27,20 +30,29 @@ void* serveThread(void* dataPointer) {
 
     // print welcome message
     printMessage(data.socket, "Welcome to Mekus shell!\n");
-    printMessage(data.socket, "@# ");
+    char buffer[513];
+    // endless cycle since the connection is terminated using connection_utils
+    while(TRUE) {
+        // run prompt script each time the user wants to do smth
+        script(
+            data.params.parameters.server.promptPath,
+            data.socket,
+            data.socket,
+            data.socket
+        );
 
-    char buffer[16];
-    i32 readBytes = 0;
-    while(strcmp(buffer, "exit\n") != 0) {
-        if((readBytes = scanMessage(data.socket, buffer, 16)) < 1) {
-            break;
-        }
-        printMessageN(data.socket, buffer, readBytes); // echo message
+        scanMessage(data.socket, buffer, 513);
+        interpret(
+            buffer,
+            data.socket,
+            data.socket,
+            data.socket
+        );
     }
-    printMessage(data.socket, "Goodbye!\n");
+
     close(data.socket); // end the connection
-    pthread_exit(0); // successful exit
-    return 0;
+    pthread_exit(EXIT_SUCCESS); // successful exit
+    return EXIT_SUCCESS; // just in case
 }
 
 void server(ConnectionParams connectionParams) {
@@ -71,11 +83,13 @@ void server(ConnectionParams connectionParams) {
         dataPointer->socket = clientSocket;
         dataPointer->params = connectionParams;
 
+        // TODO: add the socket into sockets table
+
         // serve the client, spawning a new thread
         pthread_create(&threadId, NULL, &serveThread, (void*)dataPointer);
     }
 
     // no more users need serving
 
-    pthread_exit(0); // terminate the connection thread
+    pthread_exit(EXIT_SUCCESS); // terminate the connection thread
 }

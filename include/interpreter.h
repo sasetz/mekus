@@ -25,13 +25,23 @@ typedef struct {
 
 // interpret a string of text
 // io is conducted using the socket
-void interpret(string data, descriptor socket);
+void interpret(string data, descriptor in, descriptor out, descriptor err);
 
 // runs a single command (the one that is divided by ; or \n), regardless of
 // whether it is external or built-in
-void runCommand(TokenList* args, descriptor socket);
+void runCommand(
+    TokenList* args,
+    descriptor in,
+    descriptor out,
+    descriptor err
+);
 
-void runPipeline(Pipeline pipeline, descriptor input, descriptor output);
+void runPipeline(
+    Pipeline pipeline,
+    descriptor input,
+    descriptor output,
+    descriptor error
+);
 
 
 // run new process with

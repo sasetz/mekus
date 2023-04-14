@@ -9,7 +9,6 @@
 #include "client.h"
 #include "settings.h"
 
-// FIX: replace all magic 0 and 2 from exits to more readable constants
 StartupParams parseArguments(i32 argc, string argv[]) {
     struct arguments arguments;
 
@@ -38,7 +37,7 @@ descriptor createSocket(char socketPath[108], i32 queueLength) {
     descriptor socketDescriptor = socket(AF_LOCAL, SOCK_STREAM, SOCK_CLOEXEC);
     if(socketDescriptor == -1) {
         perror("socket");
-        exit(2);
+        exit(EXIT_FAILURE);
     }
 
     // initialize the socket address
@@ -61,7 +60,7 @@ descriptor createSocket(char socketPath[108], i32 queueLength) {
         sizeof(address.sun_path)
     ) == -1) {
         perror("bind");
-        exit(2); // this is run before creating any threads, so it's safe
+        exit(EXIT_FAILURE); // this is run before creating any threads, so it's safe
     }
 
     // set the socket as passive (that accepts connections)
@@ -82,7 +81,7 @@ ConnectionParams bootstrap(StartupParams settings) {
         descriptor pid = fork();
         if(pid == -1) {
             perror("fork");
-            exit(2);
+            exit(EXIT_FAILURE);
         }
 
         if(pid == 0) {
@@ -133,7 +132,8 @@ int main(i32 argc, string argv[]) {
 
     switch(connections.mode) {
         case SCRIPT: {
-            script(connections);
+            // launch the script with standard io, then exit
+            script(connections.parameters.script.scriptPath, 0, 1, 2);
             break;
         }
         case SERVER: {

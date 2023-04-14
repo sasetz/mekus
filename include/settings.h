@@ -14,6 +14,8 @@ char TERMINATE_MESSAGE[] =
 char HELP_MESSAGE[] =
     "Author: Kirill Putiatin\n\nBuilt-in commands:\nhelp - display this message\nquit - end connection\nhalt - terminate the server\nexit - halt synonym\n";
 
+char NO_SCRIPT_MESSAGE[] = "The file specified does not exist or you have no permissions to open it!\n";
+
 #endif /* end of include guard: SETTINGS_H */
 
 // vim: filetype=c

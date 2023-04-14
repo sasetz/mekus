@@ -35,7 +35,7 @@ void quit(descriptor input, descriptor output, descriptor error) {
 }
 void halt(descriptor input, descriptor output, descriptor error) {
     write(output, TERMINATE_MESSAGE, sizeof(TERMINATE_MESSAGE));
-    terminateAll(0); // TODO: replace with constant
+    terminateAll(EXIT_SUCCESS);
 }
 void help(descriptor input, descriptor output, descriptor error) {
     write(output, HELP_MESSAGE, sizeof(HELP_MESSAGE));
