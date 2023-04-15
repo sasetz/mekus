@@ -40,3 +40,4 @@ void halt(descriptor input, descriptor output, descriptor error) {
 void help(descriptor input, descriptor output, descriptor error) {
     write(output, HELP_MESSAGE, sizeof(HELP_MESSAGE));
 }
+

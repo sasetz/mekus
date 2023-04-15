@@ -90,14 +90,13 @@ static ProgramOptions getProgramOptions(TokenList* list) {
     }
 
     output.args = _toStringArray(list);
-    _destroyTokenList(list);
     return output;
 }
 
 static void _destroyProgramOption(ProgramOptions object) {
     if(object.args != NULL) {
         string current = object.args[0];
-        i32 index = 0;
+        i32 index = 1;
         while(current != NULL) {
             free(current);
             current = object.args[index];
@@ -126,6 +125,8 @@ void runCommand(
             if(list->length == 0)
                 continue;
             ProgramOptions tempOptions = getProgramOptions(list);
+            _destroyTokenList(list);
+            list = _newTokenList();
             ProgramOptions* oldArray = array;
             array = (ProgramOptions*)
                 malloc(sizeof(ProgramOptions) * (length + 1));
@@ -134,11 +135,28 @@ void runCommand(
             array[length] = tempOptions;
             length++;
             free(oldArray);
+
         } else {
             _insertToken(list, *currentToken);
         }
         _stepForward(args);
-        currentToken = _peekNextToken(args);
+        currentToken = _peekCurrentToken(args);
+    }
+
+    // if we still have unprocessed input, convert it
+    if(list->length > 0) {
+        ProgramOptions tempOptions = getProgramOptions(list);
+        ProgramOptions* oldArray = array;
+        array = (ProgramOptions*)
+            malloc(sizeof(ProgramOptions) * (length + 1));
+        for(i32 i = 0; i < length; i++)
+            array[i] = oldArray[i];
+        array[length] = tempOptions;
+        length++;
+        free(oldArray);
+
+        _destroyTokenList(list);
+        list = NULL;
     }
     Pipeline pipeline = {
         array,
@@ -190,7 +208,7 @@ void runPipeline(
             error
         );
 
-        if(i > 0)
+        if(nextInput != input)
             close(nextInput); // close previous pipe's read end
         close(nextPipe[1]); // close the write end of the pipe
 
@@ -202,7 +220,9 @@ void runPipeline(
         output,
         error
     );
-    close(nextInput); // close read end of the pipe
+    // check if it is still the original socket, we don't need to close it
+    if(nextInput != input)
+        close(nextInput); // close read end of the pipe
 
     // wait for every child to finish
     for (i32 i = 0; i < pipeline.length; i++) {
@@ -224,20 +244,20 @@ pid redirectAndRun(
     descriptor actualIn = in;
     descriptor actualOut = out;
     descriptor actualErr = err;
-    descriptor files[3] = { -1 };
+    descriptor files[3] = { -1, -1, -1 };
 
     if(options.inputFilePath != NULL) {
         files[0] = open(options.inputFilePath, O_RDONLY | O_CLOEXEC);
         if(files[0] != -1)
             actualIn = files[0];
     }
-    if(options.outputFilePath[0] != 0) {
+    if(options.outputFilePath != NULL) {
         files[1] = open(options.inputFilePath,
                         O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC);
         if(files[1] != -1)
             actualOut = files[1];
     }
-    if(options.errorFilePath[0] != 0) {
+    if(options.errorFilePath != NULL) {
         files[2] = open(options.inputFilePath,
                         O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC);
         if(files[2] != -1)

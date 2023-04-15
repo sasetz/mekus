@@ -11,6 +11,7 @@
 #include "settings.h"
 #include "script.h"
 #include "interpreter.h"
+#include "socket_table.h"
 
 i32 printMessageN(descriptor socket, string message, i32 length) {
     return write(socket, message, length);
@@ -22,11 +23,18 @@ i32 printMessage(descriptor socket, string message) {
 
 void scanMessage(descriptor socket, string buffer, i32 length) {
     i32 readBytes = read(socket, buffer, length - 1);
+    if(readBytes == -1) {
+        // an error occurred
+
+        close(socket); // end the connection
+        pthread_exit(EXIT_SUCCESS); // successful exit
+    }
     buffer[readBytes] = 0; // null-terminate the string
 }
 
 void* serveThread(void* dataPointer) {
     ClientData data = *(ClientData*)dataPointer;
+    _insertSocket(data.socket);
 
     // print welcome message
     printMessage(data.socket, "Welcome to Mekus shell!\n");
@@ -34,12 +42,15 @@ void* serveThread(void* dataPointer) {
     // endless cycle since the connection is terminated using connection_utils
     while(TRUE) {
         // run prompt script each time the user wants to do smth
-        script(
+        bool result = script(
             data.params.parameters.server.promptPath,
             data.socket,
             data.socket,
             data.socket
         );
+
+        if(!result)
+            printMessage(data.socket, "prompt: ");
 
         scanMessage(data.socket, buffer, 513);
         interpret(
@@ -71,6 +82,7 @@ void server(ConnectionParams connectionParams) {
         0
     };
 
+    _insertSocket(socketDescriptor);
     descriptor clientSocket;
     pthread_t threadId;
     while(poll(&pollSettings, 1, 1000 * CONNECTION_TIMEOUT_S) != 0) {
@@ -82,8 +94,6 @@ void server(ConnectionParams connectionParams) {
         ClientData* dataPointer = (ClientData*) malloc(sizeof(ClientData));
         dataPointer->socket = clientSocket;
         dataPointer->params = connectionParams;
-
-        // TODO: add the socket into sockets table
 
         // serve the client, spawning a new thread
         pthread_create(&threadId, NULL, &serveThread, (void*)dataPointer);

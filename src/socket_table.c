@@ -3,9 +3,8 @@
 
 #include "socket_table.h"
 
-static SocketTable* socketTable;
+static SocketTable* socketTable = NULL;
 static pthread_mutex_t mutex;
-static bool isInitialized = FALSE;
 
 static void _initSocketTableParams(descriptor socket) {
     socketTable->length = 1;
@@ -15,7 +14,7 @@ static void _initSocketTableParams(descriptor socket) {
     socketTable->sockets[0] = socket;
 }
 
-void _initSocketTable(descriptor firstSocket) {
+void _initSocketTable() {
     if(socketTable != NULL)
         return;
 
@@ -25,9 +24,10 @@ void _initSocketTable(descriptor firstSocket) {
     pthread_mutex_lock(&mutex);
 
     socketTable = (SocketTable*) malloc(sizeof(SocketTable));
+    socketTable->length = 0;
+    socketTable->threads = NULL;
+    socketTable->sockets = NULL;
 
-    _initSocketTableParams(firstSocket);
-    
     pthread_mutex_unlock(&mutex);
 }
 
@@ -71,9 +71,6 @@ static i32 _getThreadIndex() {
 }
 
 descriptor _getSocket() {
-    if(!isInitialized || socketTable == NULL) {
-        return -1;
-    }
     pthread_mutex_lock(&mutex);
     descriptor output = socketTable->sockets[_getThreadIndex()];
     pthread_mutex_unlock(&mutex);
@@ -81,8 +78,6 @@ descriptor _getSocket() {
 }
 
 void _deleteSocket() {
-    if(!isInitialized || socketTable == NULL)
-        return;
     pthread_mutex_lock(&mutex);
     if(socketTable->length == 1) {
         socketTable->length = 0;
@@ -123,8 +118,6 @@ void _deleteSocket() {
 }
 
 void _destroySocketTable() {
-    if(!isInitialized || socketTable == NULL)
-        return;
     pthread_mutex_lock(&mutex);
     for(i32 i = 0; i < socketTable->length; i++) {
         close(socketTable->sockets[i]);

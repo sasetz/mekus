@@ -8,6 +8,7 @@
 #include "server.h"
 #include "client.h"
 #include "settings.h"
+#include "socket_table.h"
 
 StartupParams parseArguments(i32 argc, string argv[]) {
     struct arguments arguments;
@@ -31,10 +32,12 @@ StartupParams parseArguments(i32 argc, string argv[]) {
     };
 }
 
+// TODO: close socket on exec manually
+//
 // creates and binds a socket to a path in the filesystem
 descriptor createSocket(char socketPath[108], i32 queueLength) {
     // create a new socket
-    descriptor socketDescriptor = socket(AF_LOCAL, SOCK_STREAM, SOCK_CLOEXEC);
+    descriptor socketDescriptor = socket(AF_LOCAL, SOCK_STREAM, 0);
     if(socketDescriptor == -1) {
         perror("socket");
         exit(EXIT_FAILURE);
@@ -132,11 +135,15 @@ int main(i32 argc, string argv[]) {
 
     switch(connections.mode) {
         case SCRIPT: {
+            // initialize socket table to avoid undefined behavior
+            _initSocketTable();
             // launch the script with standard io, then exit
             script(connections.parameters.script.scriptPath, 0, 1, 2);
             break;
         }
         case SERVER: {
+            // socket table holds all thread's sockets to easily close them
+            _initSocketTable();
             server(connections);
             break;
         }

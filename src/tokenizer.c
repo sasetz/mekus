@@ -203,6 +203,10 @@ TokenList* _newTokenList() {
 }
 
 void _destroyTokenList(TokenList* tokenList) {
+    if(tokenList == NULL || tokenList->length == 0) {
+        free(tokenList);
+        return;
+    }
     // traverse
     TokenNode* current = tokenList->start;
     TokenNode* nextOne = current->next;
