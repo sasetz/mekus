@@ -25,7 +25,9 @@ DEPFILES=$(patsubst %.c,%.d,$(notdir $(SOURCES)))
 # .o (debug)
 DEBUG_OBJECTS=$(patsubst %.c,$(DEBUG_DIR)/%.o,$(notdir $(SOURCES)))
 
-all: $(EXECUTABLE)
+all: exe debug
+
+exe: $(EXECUTABLE)
 
 debug: $(DEBUG_EXECUTABLE)
 
@@ -47,5 +49,5 @@ clean:
 	rm -rf $(EXECUTABLE) $(BUILD_DIR)
 
 -include $(DEPFILES)
-.PHONY: all clean debug
+.PHONY: all clean debug exe
 

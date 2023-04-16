@@ -26,6 +26,10 @@ bool callBuiltin(
         help(in, out, err);
         return TRUE;
     }
+    if(strcmp(args[0], ECHO_BUILTIN) == 0) {
+        echo(args, in, out, err);
+        return TRUE;
+    }
     return FALSE;
 }
 
@@ -39,5 +43,33 @@ void halt(descriptor input, descriptor output, descriptor error) {
 }
 void help(descriptor input, descriptor output, descriptor error) {
     write(output, HELP_MESSAGE, sizeof(HELP_MESSAGE));
+}
+
+void echo(
+    string* args,
+    descriptor input,
+    descriptor output,
+    descriptor error
+) {
+    char buffer[255];
+    i32 len;
+    if(args[1] == NULL) {
+        while(
+            (len = read(input, buffer, 255)) > 0 &&
+            write(output, buffer, len) > 0
+        );
+        return;
+    }
+    i32 i = 1;
+    for(
+        string currentString = args[i];
+        currentString != NULL;
+        i++, currentString = args[i]
+    ) {
+        len = strlen(currentString);
+        write(output, currentString, len);
+        write(output, " ", 1);
+    }
+    write(output, "\n", 1);
 }
 

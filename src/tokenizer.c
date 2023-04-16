@@ -78,17 +78,22 @@ void _destroyToken(Token* token) {
 }
 
 // startPos = position of the first quote
-// TODO: add escaping of the quote
 Token* getTokenBetweenQuotes(Tokenizer* tokenizer) {
     size_t startQuotePos = tokenizer->position;
+    tokenizer->position++;
 
     while(
         tokenizer->position < tokenizer->length &&
         tokenizer->data[tokenizer->position] != '"'
-    ) tokenizer->position++;
+    ) {
+        if(tokenizer->data[tokenizer->position] == '\\')
+            tokenizer->position++;
+        tokenizer->position++;
+    }
 
-    size_t endQuotePos = tokenizer->position;
-    tokenizer->position++; // step forward not to check the quote next again
+    size_t endQuotePos = Min(tokenizer->position, tokenizer->length - 1);
+    if(tokenizer->position < tokenizer->length - 1)
+        tokenizer->position++; // step forward not to check the quote next again
 
     return _newToken(
         &tokenizer->data[startQuotePos + 1],
@@ -234,6 +239,7 @@ void _insertToken(TokenList* tokenList, Token token) {
     }
 
     newNode->previous = tokenList->end;
+    tokenList->end->next = newNode;
     tokenList->end = newNode;
     tokenList->length++;
 }
@@ -272,7 +278,7 @@ void _resetCursor(TokenList* tokenList) {
 }
 
 string* _toStringArray(TokenList* tokenList) {
-    string* args = (string*) malloc(sizeof(tokenList->length + 1));
+    string* args = (string*) malloc(sizeof(string) * (tokenList->length + 1));
     args[tokenList->length] = 0; // null-terminate the array
 
     // traverse

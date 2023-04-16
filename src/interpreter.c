@@ -7,6 +7,7 @@
 
 #include "interpreter.h"
 #include "builtins.h"
+#include "socket_table.h"
 
 void interpret(string data, descriptor in, descriptor out, descriptor err) {
     Tokenizer tokenizer = _newTokenizer(data);
@@ -34,6 +35,18 @@ void interpret(string data, descriptor in, descriptor out, descriptor err) {
     _destroyTokenList(tokens);
 }
 
+static descriptor parseDescriptor(string str) {
+    descriptor output = 0;
+    for (size_t i = 0; str[i] != '\0'; i++) {
+        if(str[i] < '0' || str[i] > '9')
+            return -1;
+        output *= 10;
+        output += str[i] - '0';
+    }
+
+    return output;
+}
+
 static ProgramOptions getProgramOptions(TokenList* list) {
     TokenList* args = _newTokenList();
     Token* currentToken = _peekCurrentToken(list);
@@ -43,53 +56,83 @@ static ProgramOptions getProgramOptions(TokenList* list) {
         NULL, NULL, NULL, NULL, 1, 2
     };
 
-    while(currentToken != NULL) {
-        if(currentToken->isControl) {
-            if(currentToken->data[0] == '<') {
-                if(nextToken == NULL)
-                    break;
+    while(TRUE) {
+        currentToken = _peekCurrentToken(list);
+        nextToken = _peekNextToken(list);
 
-                output.inputFilePath = strdup(nextToken->data);
-            } else if(currentToken->data[0] == '>') {
-                if(nextToken == NULL)
-                    break;
-                Token* previousToken = _peekPreviousToken(list);
-                bool isOut = TRUE; // true = stdout, false = stderr
-                descriptor fd = -1;
-                if(strcmp(previousToken->data, "2") == 0) {
-                    isOut = FALSE;
-                }
-                if(strcmp(nextToken->data, "&") == 0) {
-                    _stepForward(list);
-                    Token* tempToken = _peekNextToken(list);
-                    if(tempToken == NULL)
-                        break;
-                    fd = atoi(tempToken->data);
-                }
-                if(isOut) {
-                    if(fd == -1) {
-                        output.outputFilePath = strdup(nextToken->data);
-                    } else {
-                        output.output = fd;
-                    }
-                } else {
-                    if(fd == -1) {
-                        output.errorFilePath = strdup(nextToken->data);
-                    } else {
-                        output.error = fd;
-                    }
-                }
-            }
-        } else {
+        if(currentToken == NULL)
+            break;
+
+        if(
+            !currentToken->isControl &&
+            (nextToken == NULL || nextToken->data[0] != '>')
+        ) {
             _insertToken(args, *currentToken);
+            _stepForward(list);
+
+            continue;
+        }
+
+        if(nextToken == NULL)
+            break;
+        if(currentToken->data[0] == '<') {
+
+            output.inputFilePath = strdup(nextToken->data);
+            _stepForward(list);
+            _stepForward(list);
+
+            continue;
+        }
+
+        // processes that one case when the > sign is the first one
+        if(nextToken->data[0] != '>') {
+            _stepForward(list);
+            continue;
         }
 
         _stepForward(list);
         currentToken = _peekCurrentToken(list);
         nextToken = _peekNextToken(list);
+
+        Token* previousToken = _peekPreviousToken(list);
+        bool isOut = TRUE; // true = stdout, false = stderr
+        descriptor fd = -1;
+        if(strcmp(previousToken->data, "2") == 0) {
+            isOut = FALSE;
+        }
+
+        if(strcmp(nextToken->data, "&") == 0) {
+            _stepForward(list);
+            Token* tempToken = _peekNextToken(list);
+            if(tempToken == NULL)
+                break;
+            fd = parseDescriptor(tempToken->data);
+            if(fd == -1) {
+                _stepForward(list); // step over corrupt descriptor
+                _stepForward(list);
+                continue;
+            }
+        }
+
+        if(isOut) {
+            if(fd == -1) {
+                output.outputFilePath = strdup(nextToken->data);
+            } else {
+                output.output = fd;
+            }
+        } else {
+            if(fd == -1) {
+                output.errorFilePath = strdup(nextToken->data);
+            } else {
+                output.error = fd;
+            }
+        }
+        _stepForward(list);
+        _stepForward(list);
     }
 
-    output.args = _toStringArray(list);
+    output.args = _toStringArray(args);
+    _destroyTokenList(args);
     return output;
 }
 
@@ -252,14 +295,20 @@ pid redirectAndRun(
             actualIn = files[0];
     }
     if(options.outputFilePath != NULL) {
-        files[1] = open(options.inputFilePath,
-                        O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC);
+        files[1] = open(
+            options.outputFilePath,
+            O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC,
+            S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
+        );
         if(files[1] != -1)
             actualOut = files[1];
     }
     if(options.errorFilePath != NULL) {
-        files[2] = open(options.inputFilePath,
-                        O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC);
+        files[2] = open(
+            options.errorFilePath,
+            O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC,
+            S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
+        );
         if(files[2] != -1)
             actualErr = files[2];
     }
@@ -289,6 +338,44 @@ pid redirectAndRun(
     return output;
 }
 
+static bool isDifferent(
+    descriptor object,
+    descriptor in,
+    descriptor out,
+    descriptor err
+) {
+    return object != in && object != out && object != err;
+}
+
+static descriptor duplicateStdio(
+    descriptor number,
+    descriptor target,
+    descriptor in,
+    descriptor out,
+    descriptor err
+) {
+    if(!isDifferent(number, in, out, err))
+        return -1;
+
+    descriptor original = dup(number);
+    close(number);
+    if(dup2(target, number) == -1)
+        return -1;
+    return original;
+}
+
+static void restoreStdio(
+    descriptor number,
+    descriptor original
+) {
+    if(original == -1)
+        return;
+
+    close(number);
+    dup2(original, number);
+    close(original);
+}
+
 pid runProgram(
     string* args,
     descriptor in,
@@ -298,21 +385,9 @@ pid runProgram(
     if(callBuiltin(args, in, out, err)) // try to call a builtin
         return BUILTIN_PID; // return on success
 
-    descriptor originalIn, originalOut, originalErr;
-    originalIn = dup(0);
-    originalOut = dup(1);
-    originalErr = dup(2);
-
-    close(0);
-    close(1);
-    close(2);
-
-    if(dup2(in, 0) == -1) 
-        return -1;
-    if(dup2(out, 1) == -1) 
-        return -1;
-    if(dup2(err, 2) == -1) 
-        return -1;
+    descriptor originalIn = duplicateStdio(0, in, in, out, err);
+    descriptor originalOut = duplicateStdio(1, out, in, out, err);
+    descriptor originalErr = duplicateStdio(2, err, in, out, err);
 
     pid child;
     if((child = fork()) == 0) {
@@ -321,23 +396,17 @@ pid runProgram(
         close(originalOut);
         close(originalErr);
 
+        _destroySocketTableLeaveSTDIO(); // no socket leaking
+
         execvp(args[0], args); // exec with args, respects PATH
         pthread_exit((void*)EXIT_FAILURE); // kill this process
         return -1; // just to be sure
     }
     // the parent
     
-    close(0);
-    close(1);
-    close(2);
-
-    dup2(originalIn, 0);
-    dup2(originalOut, 1);
-    dup2(originalErr, 2);
-
-    close(originalIn);
-    close(originalOut);
-    close(originalErr);
+    restoreStdio(0, originalIn);
+    restoreStdio(1, originalOut);
+    restoreStdio(2, originalErr);
 
     return child;
 }

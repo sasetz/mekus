@@ -16,6 +16,8 @@ typedef struct {
 // those functions get, insert and delete sockets for the thread that runs them
 void _initSocketTable();
 void _destroySocketTable(); // close and destroy all sockets/connections
+// close sockets, but leave those that have descriptors 0-2
+void _destroySocketTableLeaveSTDIO();
 void _insertSocket(descriptor socket);
 descriptor _getSocket();
 void _deleteSocket();

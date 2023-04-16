@@ -32,8 +32,6 @@ StartupParams parseArguments(i32 argc, string argv[]) {
     };
 }
 
-// TODO: close socket on exec manually
-//
 // creates and binds a socket to a path in the filesystem
 descriptor createSocket(char socketPath[108], i32 queueLength) {
     // create a new socket

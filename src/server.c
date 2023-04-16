@@ -39,10 +39,11 @@ void* serveThread(void* dataPointer) {
     // print welcome message
     printMessage(data.socket, "Welcome to Mekus shell!\n");
     char buffer[513];
+    bool result;
     // endless cycle since the connection is terminated using connection_utils
     while(TRUE) {
         // run prompt script each time the user wants to do smth
-        bool result = script(
+        result = script(
             data.params.parameters.server.promptPath,
             data.socket,
             data.socket,

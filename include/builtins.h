@@ -7,6 +7,7 @@
 #define HALT_BUILTIN "halt"
 #define EXIT_BUILTIN "exit" // halt synonym
 #define HELP_BUILTIN "help"
+#define ECHO_BUILTIN "echo"
 
 // call builtin, TRUE if it runs, FALSE if it is not a builtin
 bool callBuiltin(
@@ -19,6 +20,12 @@ bool callBuiltin(
 void quit(descriptor input, descriptor output, descriptor error);
 void halt(descriptor input, descriptor output, descriptor error);
 void help(descriptor input, descriptor output, descriptor error);
+void echo(
+    string* args,
+    descriptor input,
+    descriptor output,
+    descriptor error
+);
 
 #endif /* end of include guard: BUILTINS_H */
 // vim: filetype=c

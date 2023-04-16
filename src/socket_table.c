@@ -117,9 +117,13 @@ void _deleteSocket() {
     pthread_mutex_unlock(&mutex);
 }
 
-void _destroySocketTable() {
+static void _destroySocketTablePreset(bool leave) {
     pthread_mutex_lock(&mutex);
     for(i32 i = 0; i < socketTable->length; i++) {
+        if(leave &&
+            socketTable->sockets[i] <= 2 &&
+            socketTable->sockets[i] >= 0)
+            continue;
         close(socketTable->sockets[i]);
     }
     free(socketTable->sockets);
@@ -128,5 +132,13 @@ void _destroySocketTable() {
     pthread_mutex_unlock(&mutex);
     pthread_mutex_destroy(&mutex);
     socketTable = NULL;
+}
+
+void _destroySocketTable() {
+    _destroySocketTablePreset(FALSE);
+}
+
+void _destroySocketTableLeaveSTDIO() {
+    _destroySocketTablePreset(TRUE);
 }
 
