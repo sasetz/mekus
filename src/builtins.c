@@ -1,8 +1,10 @@
 #include <unistd.h>
+#include <time.h>
 
 #include "builtins.h"
 #include "connection_utils.h"
 #include "settings.h"
+#include "socket_table.h"
 
 bool callBuiltin(
     string* args,
@@ -28,6 +30,10 @@ bool callBuiltin(
     }
     if(strcmp(args[0], ECHO_BUILTIN) == 0) {
         echo(args, in, out, err);
+        return TRUE;
+    }
+    if(strcmp(args[0], PROMPT_BUILTIN) == 0) {
+        prompt(in, out, err);
         return TRUE;
     }
     return FALSE;
@@ -60,6 +66,10 @@ void echo(
         );
         return;
     }
+    bool lineFeed = TRUE;
+    if(strcmp(args[1], "-n") == 0) {
+        lineFeed = FALSE;
+    }
     i32 i = 1;
     for(
         string currentString = args[i];
@@ -70,6 +80,42 @@ void echo(
         write(output, currentString, len);
         write(output, " ", 1);
     }
-    write(output, "\n", 1);
+    if(lineFeed)
+        write(output, "\n", 1);
+}
+
+void prompt(
+    descriptor input,
+    descriptor output,
+    descriptor error
+) {
+    char buffer[256];
+    struct tm timeStructure;
+    time_t epoch = time(NULL);
+    localtime_r(&epoch, &timeStructure);
+    strftime(buffer, 255, "%k:%M", &timeStructure);
+    buffer[255] = '\0';
+    write(output, buffer, 5); // print time
+    write(output, " ", 1);
+    
+    // critical section since getlogin() is not thread-safe
+    lockPrompt();
+
+    if(getlogin_r(buffer, 255) != 0) {
+        strcpy(buffer, "user");
+    }
+
+    unlockPrompt();
+
+    i32 length = strlen(buffer);
+    write(output, buffer, length); // print username
+    write(output, "@", 1);
+    
+    if(gethostname(buffer, 255) != 0) {
+        strcpy(buffer, "computer");
+    }
+    length = strlen(buffer);
+    write(output, buffer, length); // print computer name
+    write(output, "# ", 2);
 }
 

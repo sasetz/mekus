@@ -22,6 +22,10 @@ void _insertSocket(descriptor socket);
 descriptor _getSocket();
 void _deleteSocket();
 
+// avoiding race-conditions with prompt calls
+void lockPrompt();
+void unlockPrompt();
+
 #endif /* end of include guard: SOCKET_TABLE_H */
 
 // vim: filetype=c

@@ -1,8 +1,10 @@
 build/
 debug/
 .cache/
+.idea
 compile_commands.json
 mekus
 mekus_gdb
 sck
+*.mek
 

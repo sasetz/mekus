@@ -10,7 +10,7 @@
 #define DISCONNECT_MESSAGE "Thank you for using Mekus!\n"
 #define TERMINATE_MESSAGE "Thank you for using Mekus! Terminating others...\n"
 
-#define HELP_MESSAGE "Author: Kirill Putiatin\n\nBuilt-in commands:\nhelp - display this message\nquit - end connection\nhalt - terminate the server\nexit - halt synonym\n"
+#define HELP_MESSAGE "Author: Kirill Putiatin\n\nBuilt-in commands:\nhelp - display this message\nquit - end connection\nhalt - terminate the server\nexit - halt synonym\necho - print arguments or from stdin (-p to prevent newline at the end)\nprompt - print default prompt\n"
 
 #define NO_SCRIPT_MESSAGE "The file specified does not exist or you have no permissions to open it!\n"
 

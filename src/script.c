@@ -12,7 +12,6 @@ bool script(string scriptPath, descriptor in, descriptor out, descriptor err) {
         "r"
     );
     if(file == NULL) {
-        write(err, NO_SCRIPT_MESSAGE, sizeof(NO_SCRIPT_MESSAGE));
         return FALSE;
     }
     char buffer[512];

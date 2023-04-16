@@ -8,6 +8,7 @@
 #define EXIT_BUILTIN "exit" // halt synonym
 #define HELP_BUILTIN "help"
 #define ECHO_BUILTIN "echo"
+#define PROMPT_BUILTIN "prompt" // default prompt
 
 // call builtin, TRUE if it runs, FALSE if it is not a builtin
 bool callBuiltin(
@@ -26,6 +27,7 @@ void echo(
     descriptor output,
     descriptor error
 );
+void prompt(descriptor input, descriptor output, descriptor error);
 
 #endif /* end of include guard: BUILTINS_H */
 // vim: filetype=c

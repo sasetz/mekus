@@ -6,6 +6,8 @@
 static SocketTable* socketTable = NULL;
 static pthread_mutex_t mutex;
 
+static pthread_mutex_t promptMutex; // mutex for prompt commands
+
 static void _initSocketTableParams(descriptor socket) {
     socketTable->length = 1;
     socketTable->threads = (pthread_t*) malloc(sizeof(pthread_t));
@@ -20,6 +22,7 @@ void _initSocketTable() {
 
     if(pthread_mutex_init(&mutex, NULL) != 0)
         return;
+    pthread_mutex_init(&promptMutex, NULL);
 
     pthread_mutex_lock(&mutex);
 
@@ -140,5 +143,13 @@ void _destroySocketTable() {
 
 void _destroySocketTableLeaveSTDIO() {
     _destroySocketTablePreset(TRUE);
+}
+
+void lockPrompt() {
+    pthread_mutex_lock(&promptMutex);
+}
+
+void unlockPrompt() {
+    pthread_mutex_unlock(&promptMutex);
 }
 

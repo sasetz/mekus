@@ -51,7 +51,12 @@ void* serveThread(void* dataPointer) {
         );
 
         if(!result)
-            printMessage(data.socket, "prompt: ");
+            interpret(
+                "prompt", // internal command to print out default prompt
+                data.socket,
+                data.socket,
+                data.socket
+            );
 
         scanMessage(data.socket, buffer, 513);
         interpret(
@@ -61,18 +66,10 @@ void* serveThread(void* dataPointer) {
             data.socket
         );
     }
-
-    close(data.socket); // end the connection
-    pthread_exit(EXIT_SUCCESS); // successful exit
-    return EXIT_SUCCESS; // just in case
 }
 
 void server(ConnectionParams connectionParams) {
     // close the communication to terminal, it can interfere with the client
-    // TODO: add logging to a file
-    close(0); // close stdin
-    close(1); // close stdout
-    close(2); // close stderr
 
     descriptor socketDescriptor = connectionParams.parameters.server.socket;
 
