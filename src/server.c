@@ -21,15 +21,34 @@ i32 printMessage(descriptor socket, string message) {
     return write(socket, message, strlen(message));
 }
 
-void scanMessage(descriptor socket, string buffer, i32 length) {
-    i32 readBytes = read(socket, buffer, length - 1);
+bool scanMessage(descriptor socket, string buffer, i32 length) {
+    struct pollfd fds = {
+        socket,
+        POLLIN,
+        0
+    };
+    i32 readBytes = poll(&fds, 1, IDLE_TIMEOUT);
+    if(readBytes == -1) {
+        // an error occurred
+
+        close(socket); // end the connection
+        pthread_exit(EXIT_SUCCESS); // successful exit
+    } else if(readBytes == 0) {
+        // timeout occurred
+        printMessage(socket, IDLE_MESSAGE);
+        close(socket);
+        pthread_exit(EXIT_SUCCESS);
+    }
+    readBytes = read(socket, buffer, length - 1);
     if(readBytes == -1) {
         // an error occurred
 
         close(socket); // end the connection
         pthread_exit(EXIT_SUCCESS); // successful exit
     }
+
     buffer[readBytes] = 0; // null-terminate the string
+    return TRUE;
 }
 
 void* serveThread(void* dataPointer) {
@@ -40,6 +59,14 @@ void* serveThread(void* dataPointer) {
     printMessage(data.socket, "Welcome to Mekus shell!\n");
     char buffer[513];
     bool result;
+    result = script(
+        data.params.parameters.server.configPath,
+        data.socket,
+        data.socket,
+        data.socket
+    );
+    if(!result)
+        printMessage(data.socket, NO_SCRIPT_MESSAGE);
     // endless cycle since the connection is terminated using connection_utils
     while(TRUE) {
         // run prompt script each time the user wants to do smth
@@ -66,6 +93,7 @@ void* serveThread(void* dataPointer) {
             data.socket
         );
     }
+    return 0;
 }
 
 void server(ConnectionParams connectionParams) {
