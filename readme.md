@@ -112,16 +112,16 @@ prompt, use the `--prompt` argument with the script path.
 
 ## List of points
 
-- 1. script mode
-- 8. output can be redirected to any file descriptor using `&`
-- 9. at all times, the client is separate from the server in interactive mode
-- 10. double quotes `"` are functional
-- 14. prompt is configurable using external script
-- 18. if no program is currently running, after one minute the user will be
+- `1.` script mode
+- `8.` output can be redirected to any file descriptor using `&`
+- `9.` at all times, the client is separate from the server in interactive mode
+- `10.` double quotes `"` are functional
+- `14.` prompt is configurable using external script
+- `18.` if no program is currently running, after one minute the user will be
 disconnected
-- 28. Makefile included, it conains targets all, debug and exe. debug target
+- `28.` Makefile included, it conains targets all, debug and exe. debug target
 is used for GDB debugger
-- 30. this documentation
+- `30.` this documentation
 
-Total: 22 (20) points
+Total: 22 points
 
