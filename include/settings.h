@@ -7,7 +7,7 @@
 #define CONNECTION_QUEUE_LENGTH 5
 #define CONNECTION_TIMEOUT_S 120
 
-#define IDLE_TIMEOUT 60
+#define IDLE_TIMEOUT 60000
 #define IDLE_MESSAGE "You have been idling for too long. Thank you for using Mekus!\n"
 
 #define DISCONNECT_MESSAGE "Thank you for using Mekus!\n"
